@@ -20,9 +20,7 @@ spec:
                   image: xpctl-server-mongo
                   imagePullPolicy: Never
                   command:
-                    - python
-                    - -m
-                    - xpserver
+                    - xpctl-server
                   args:
                       - --backend=mongo
                       - --cred=./xpctlcred.yaml

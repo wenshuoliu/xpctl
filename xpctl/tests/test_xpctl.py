@@ -3,7 +3,7 @@ import pytest
 from xpctl.xpclient import Configuration
 from xpctl.xpclient.api import XpctlApi
 from xpctl.xpclient import ApiClient
-from xpctl.xpclient.models import Experiment, Result
+from xpctl.xpclient.models import Experiment, Result, Dataset, Datafile
 from xpctl.xpclient.rest import ApiException
 from mead.utils import hash_config
 from collections import namedtuple
@@ -17,13 +17,29 @@ HOST = 'localhost:5310/v2'
 API = None
 
 
-def clean_db(func):
+def clean_experiments(func):
     @wraps(func)
     def clean(*args, **kwargs):
         try:
             eids = [x.eid for x in API.list_experiments_by_prop(TASK, prop=None, value=None)]
             for eid in eids:
                 response = API.remove_experiment(TASK, eid)
+                if response.response_type == 'error':
+                    raise RuntimeError('can not clean db')
+        except ApiException:
+            # there's probably nothing in db
+            return func(*args, **kwargs)
+        return func(*args, **kwargs)
+    return clean
+
+
+def clean_datasets(func):
+    @wraps(func)
+    def clean(*args, **kwargs):
+        try:
+            dataset_ids = [x.id for x in API.get_datasets()]
+            for dataset_id in dataset_ids:
+                response = API.remove_dataset(id=dataset_id)
                 if response.response_type == 'error':
                     raise RuntimeError('can not clean db')
         except ApiException:
@@ -49,7 +65,34 @@ def _put_one_exp(exp):
         return result.message
 
 
-@clean_db
+def _put_one_dataset(dataset):
+    result = API.put_dataset(dataset)
+    if result.response_type == 'error':
+        raise RuntimeError(result.message)
+    else:
+        return result.message
+
+
+@clean_datasets
+def test_get_dataset(setup):
+    """ put a dataset, get back the same"""
+    dataset = Dataset(
+        name='test_data',
+        train_files=[Datafile(location='loc_train', sha1='sha1_train')],
+        valid_files=[Datafile(location='loc_valid', sha1='sha1_valid')],
+        test_files=[Datafile(location='loc_test', sha1='sha1_test')],
+    )
+    _ = _put_one_dataset(dataset)
+    datasets = API.get_datasets(name='test_data')
+    assert(len(datasets) == 1)
+    dataset = datasets[0]
+    assert (dataset.name == 'test_data')
+    assert (dataset.train_files == [Datafile(location='loc_train', sha1='sha1_train')])
+    assert (dataset.valid_files == [Datafile(location='loc_valid', sha1='sha1_valid')])
+    assert (dataset.test_files == [Datafile(location='loc_test', sha1='sha1_test')])
+    
+
+@clean_experiments
 def test_put_result_blank(setup):
     """ you can not insert an experiment with no results"""
     exp = Experiment(
@@ -64,7 +107,7 @@ def test_put_result_blank(setup):
         return True
 
 
-@clean_db
+@clean_experiments
 def test_put_result_one(setup):
     """ test a proper insertion"""
     exp = Experiment(
@@ -78,7 +121,7 @@ def test_put_result_one(setup):
     assert len(result) == 1
 
 
-@clean_db
+@clean_experiments
 def test_experiment_details(setup):
     date = datetime.datetime.utcnow().isoformat()
     label = 'test_label'
@@ -131,7 +174,7 @@ def _find_by_prop_unique(prop, expected_value):
         return False
 
 
-@clean_db
+@clean_experiments
 def test_update_property(setup):
     date = datetime.datetime.utcnow().isoformat()
     label = _generate_random_string()
@@ -168,7 +211,7 @@ def _test_list_experiments_by_prop(prop, value, experiments):
     return set(expected) == set(results)
 
 
-@clean_db
+@clean_experiments
 def test_list_experiments_by_prop(setup):
     """
     list_experiments_by_prop finds some experiments by a (prop, value) pair. also allows some filtering:
@@ -259,7 +302,7 @@ def _test_reduction_dim(prop, value, reduction_dim, experiments):
     return expected == results
 
 
-@clean_db
+@clean_experiments
 def test_get_results_by_prop(setup):
     """
     get_results_by_prop first finds some experiments by a (prop, value) pair and then groups them by a reduction_dim.

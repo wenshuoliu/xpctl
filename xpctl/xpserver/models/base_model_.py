@@ -2,7 +2,7 @@ import pprint
 
 import six
 
-from xpctl.xpserver import util
+from xpserver import util
 
 
 class Model(object):

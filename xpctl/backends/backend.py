@@ -15,6 +15,8 @@ from xpctl.xpserver.models import Response as ServerResponse
 from xpctl.xpserver.models import TaskSummary as ServerTaskSummary
 from xpctl.xpserver.models import AggregateResult as ServerAggregateResult
 from xpctl.xpserver.models import AggregateResultValues
+from xpctl.xpserver.models import Dataset as ServerDataset
+from xpctl.xpserver.models import Datafile as ServerDataFile
 
 
 __all__ = []
@@ -43,7 +45,36 @@ class Result(object):
         if field not in self.__dict__:
             raise ValueError('{} does not have a property {}'.format(self.__class__, field))
         return self.__dict__[field]
-        
+
+
+@exporter
+class Datafile(object):
+    def __init__(self, location, sha1):
+        super(Datafile, self).__init__()
+        self.location = location
+        self.sha1 = sha1
+    
+    def get_prop(self, field):
+        if field not in self.__dict__:
+            raise ValueError('{} does not have a property {}'.format(self.__class__, field))
+        return self.__dict__[field]
+
+
+@exporter
+class Dataset(object):
+    def __init__(self, id, name, train_files, valid_files, test_files):
+        super(Dataset, self).__init__()
+        self.id = id
+        self.name = name
+        self.train_files = train_files
+        self.valid_files = valid_files
+        self.test_files = test_files
+    
+    def get_prop(self, field):
+        if field not in self.__dict__:
+            raise ValueError('{} does not have a property {}'.format(self.__class__, field))
+        return self.__dict__[field]
+
 
 @exporter
 class AggregateResult(object):
@@ -507,6 +538,30 @@ def serialize_task_summary(task_summary):
     if is_error(task_summary):
         return abort(500, task_summary.message)
     return ServerTaskSummary(**task_summary.__dict__)
+
+
+@exporter
+def serialize_datasets(datasets):
+    """
+    serialize a list of dataset objects for consumption by swagger client
+    :param datasets:
+    :return:
+    """
+    if is_error(datasets):
+        return abort(500, datasets.message)
+    results = []
+    for dataset in datasets:
+        if type(dataset) == BackendError:
+            return BackendResponse(**dataset.__dict__)
+        train = [ServerDataFile(**r.__dict__) for r in dataset.train_files]
+        valid = [ServerDataFile(**r.__dict__) for r in dataset.valid_files]
+        test = [ServerDataFile(**r.__dict__) for r in dataset.test_files]
+        d = dataset.__dict__
+        d.update({'train_files': train})
+        d.update({'valid_files': valid})
+        d.update({'test_files': test})
+        results.append(ServerDataset(**d))
+    return results
 
 
 @exporter

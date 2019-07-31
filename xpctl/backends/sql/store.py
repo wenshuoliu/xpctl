@@ -140,7 +140,16 @@ class SQLRepo(ExperimentRepo):
             return BackendSuccess(message=experiment.eid)
         except sql.exc.SQLAlchemyError as e:
             return BackendError(message=str(e))
-        
+    
+    def put_dataset(self, dataset):
+        return BackendError(message='not implemented')
+
+    def get_datasets(self, id, name):
+        return BackendError(message='not implemented')
+
+    def remove_dataset(self, name, id):
+        return BackendError(message='not implemented')
+    
     def get_model_location(self, task, eid):
         session = self.Session()
         exp = session.query(SqlExperiment).get(eid)

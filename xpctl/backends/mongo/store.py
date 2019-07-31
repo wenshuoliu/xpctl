@@ -4,12 +4,13 @@ import pymongo
 import datetime
 import socket
 import getpass
+import re
 from baseline.utils import export, listify, unzip_files, read_config_file
 from mead.utils import hash_config
 from xpctl.backends.core import ExperimentRepo
 from xpctl.backends.backend import TaskDatasetSummary, TaskDatasetSummarySet, BackendSuccess, BackendError, Experiment, ExperimentSet, Result, \
     EVENT_TYPES, log2json, get_experiment_label, METRICS_SORT_ASCENDING, safe_get, \
-    client_experiment_to_put_result_consumable, aggregate_results, write_experiment
+    client_experiment_to_put_result_consumable, aggregate_results, write_experiment, Dataset, Datafile
 from bson.objectid import ObjectId
 from baseline.version import __version__
 import logging
@@ -179,7 +180,74 @@ class MongoRepo(ExperimentRepo):
                     return experiment_aggregate_set.sort(sort)
             else:
                 return BackendError(message='experiments can only be sorted when event_type=test_events')
-        
+
+    def put_dataset(self, dataset):
+        post = {
+            "name": dataset.name,
+            "train_files": [{'location': x.location, 'sha1': x.sha1} for x in dataset.train_files],
+            "valid_files": [{'location': x.location, 'sha1': x.sha1} for x in dataset.valid_files],
+            "test_files": [{'location': x.location, 'sha1': x.sha1} for x in dataset.test_files],
+        }
+        try:
+            coll = self.db['datasets']
+            result = coll.insert_one(post)
+            return BackendSuccess(message='{}/{}'.format(dataset.name, str(result.inserted_id)))
+        except pymongo.errors.PyMongoError as e:
+            return BackendError(message='dataset could not be inserted: {}'.format(e.message))
+
+    def get_datasets(self, id, name):
+        if not (id is None or id == 'None'):
+            query = {'_id': ObjectId(id)}
+        elif not (name is None or name == 'None'):
+            rx = re.compile("^{}| ^{}:".format(name, name))
+            query = {'name': rx}
+        else:
+            query = {}
+        coll = self.db['datasets']
+        db_results = list(coll.find(query))
+        if not db_results:
+            return BackendError(message='no information available for dataset [{}]'.format(name))
+        datasets = []
+        for db_result in db_results:
+            train_files = [Datafile(**x) for x in db_result.get('train_files', [])]
+            valid_files = [Datafile(**x) for x in db_result.get('valid_files', [])]
+            test_files = [Datafile(**x) for x in db_result.get('test_files', [])]
+            dataset = Dataset(str(db_result['_id']), db_result['name'], train_files, valid_files, test_files)
+            datasets.append(dataset)
+        return datasets
+
+    def remove_dataset(self, id, name):
+        name = None if name == 'None' else name
+        id = None if id == 'None' else id
+        print('name', name, 'id', id)
+        # both can't be blank or full
+        if (name is None and id is None) or (name is not None and id is not None):
+            return BackendError('Specify either dataset name or dataset id to remove from database')
+        try:
+            coll = self.db['datasets']
+            if id is not None:
+                prev = coll.find_one({'_id': ObjectId(id)})
+                if prev is None:
+                    return BackendError(message='delete operation failed: dataset [{}] not found'.format(id))
+                coll.remove({'_id': ObjectId(id)})
+                try:
+                    assert coll.find_one({'_id': ObjectId(id)}) is None
+                    return BackendSuccess('dataset [{}] deleted successfully from database'.format(id))
+                except AssertionError:
+                    return BackendError('delete failed: could not delete dataset {} from database'.format(id))
+            else:
+                prev = coll.find_one({'name': name})
+                if prev is None:
+                    return BackendError(message='delete operation failed: dataset [{}] not found'.format(name))
+                coll.remove({'name': name})
+                try:
+                    assert coll.find_one({'_id': ObjectId(name)}) is None
+                    return BackendSuccess('dataset [{}] deleted successfully from database'.format(name))
+                except AssertionError:
+                    return BackendError('delete failed: could not delete dataset {} from database'.format(name))
+        except pymongo.errors.PyMongoError as e:
+            return BackendError(message='dataset could not be removed: {}'.format(e.message))
+    
     @staticmethod
     def _update_query(q, **kwargs):
         query = q

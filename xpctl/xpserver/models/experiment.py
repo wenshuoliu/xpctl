@@ -5,9 +5,9 @@ from datetime import date, datetime  # noqa: F401
 
 from typing import List, Dict  # noqa: F401
 
-from xpctl.xpserver.models.base_model_ import Model
-from xpctl.xpserver.models.result import Result  # noqa: F401,E501
-from xpctl.xpserver import util
+from xpserver.models.base_model_ import Model
+from xpserver.models.result import Result  # noqa: F401,E501
+from xpserver import util
 
 
 class Experiment(Model):

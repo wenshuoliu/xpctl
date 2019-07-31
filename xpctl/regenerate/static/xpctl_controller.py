@@ -1,10 +1,11 @@
 import connexion
 
 from xpctl.xpserver.models.experiment import Experiment  # noqa: E501
+from xpctl.xpserver.models.dataset import Dataset
 import flask
 from xpctl.backends.backend import serialize_dict, serialize_experiment, \
     serialize_experiment_aggregate, serialize_experiment_list, serialize_response, serialize_task_summary_list, \
-    serialize_task_summary
+    serialize_task_summary, serialize_datasets
 
 
 def config2json(task, sha1):  # noqa: E501
@@ -32,9 +33,9 @@ def experiment_details(task, eid, event_type=None, metric=None):  # noqa: E501
     :type task: str
     :param eid: ID of experiment to return
     :type eid: str
-    :param event_type: 
+    :param event_type:
     :type event_type: str
-    :param metric: 
+    :param metric:
     :type metric: List[str]
 
     :rtype: Experiment
@@ -99,13 +100,13 @@ def list_experiments_by_prop(task, prop=None, value=None, user=None, metric=None
     :type prop: str
     :param value: value: dpressel, SST2
     :type value: str
-    :param user: 
+    :param user:
     :type user: List[str]
-    :param metric: 
+    :param metric:
     :type metric: List[str]
-    :param sort: 
+    :param sort:
     :type sort: str
-    :param event_type: 
+    :param event_type:
     :type event_type: str
 
     :rtype: List[Experiment]
@@ -119,13 +120,13 @@ def put_result(task, experiment, user=None, label=None):  # noqa: E501
 
      # noqa: E501
 
-    :param task: 
+    :param task:
     :type task: str
-    :param experiment: 
+    :param experiment:
     :type experiment: dict | bytes
-    :param user: 
+    :param user:
     :type user: str
-    :param label: 
+    :param label:
     :type label: str
 
     :rtype: Response
@@ -141,9 +142,9 @@ def remove_experiment(task, eid):  # noqa: E501
 
      # noqa: E501
 
-    :param task: 
+    :param task:
     :type task: str
-    :param eid: 
+    :param eid:
     :type eid: str
 
     :rtype: Response
@@ -183,16 +184,44 @@ def update_property(task, eid, prop, value):  # noqa: E501
 
      # noqa: E501
 
-    :param task: 
+    :param task:
     :type task: str
-    :param eid: 
+    :param eid:
     :type eid: str
-    :param prop: 
+    :param prop:
     :type prop: str
-    :param value: 
+    :param value:
     :type value: str
 
     :rtype: Response
     """
     backend = flask.globals.current_app.backend
     return serialize_response(backend.update_prop(task, eid, prop, value))
+
+
+def put_dataset(dataset):  # noqa: E501
+    """create a dataset
+
+     # noqa: E501
+
+    :param dataset:
+    :type dataset: Dataset
+
+    :rtype: Response
+    """
+    if connexion.request.is_json:
+        dataset = Dataset.from_dict(connexion.request.get_json())  # noqa: E501
+    backend = flask.globals.current_app.backend
+    return serialize_response(backend.put_dataset(dataset))
+
+
+def get_datasets(name=None):  # noqa: E501
+    """get dataset descriptions from name
+
+    :param dataset_name: dataset_name
+    :type dataset_name: str
+
+    :rtype: Response
+    """
+    backend = flask.globals.current_app.backend
+    return serialize_datasets(backend.get_datasets(name))

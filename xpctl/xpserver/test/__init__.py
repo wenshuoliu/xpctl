@@ -3,7 +3,7 @@ import logging
 import connexion
 from flask_testing import TestCase
 
-from xpctl.xpserver.encoder import JSONEncoder
+from xpserver.encoder import JSONEncoder
 
 
 class BaseTestCase(TestCase):

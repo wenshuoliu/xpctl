@@ -150,6 +150,33 @@ class ExperimentRepo(object):
         """
         pass
 
+    def put_dataset(self, dataset):
+        """Put a dataset in the database
+
+        :param dataset: (``str``) The dataset object: xpctl.xpserver.model.Dataset
+        :return: Union[xpctl.backend.data.Success, xpctl.backend.data.Error]
+        """
+        pass
+
+    def get_datasets(self, id, name):
+        """
+        get dataset description for a dataset when id is provided. for dataset_name, we check if the name is fully
+        qualified. Else get descriptions for all matching datasets. Eg: when the dataset_name is SST2, try to return
+        SST2:x:y datasets if exists.
+        :param name: (``str``) dataset name
+        :param id: (``str``) dataset id
+        :return:
+        """
+        pass
+
+    def remove_dataset(self, id, name):
+        """Remove a dataset: either by name or id
+        :param name: (``str``) The dataset name
+        :param id: (``str``) The dataset id
+        :return: Union[xpctl.backend.data.Success, xpctl.backend.data.Error]
+        """
+        raise NotImplemented("Base ExperimentRepo tasks are immutable")
+
     def dump(self, zipfile, task_eids):
         """
         dump the whole database. creates a zipfile which unzips into the following directory structure

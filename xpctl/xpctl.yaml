@@ -431,6 +431,102 @@ paths:
                   $ref: "#/definitions/Response"
             x-swagger-router-controller: "xpserver.controllers.xpctl_controller"
 
+  /datasets/:
+          get:
+            tags:
+            - "xpctl"
+            summary: "get datasets"
+            description: "datasets"
+            operationId: "get_datasets"
+            produces:
+            - "application/json"
+            parameters:
+            - name: "name"
+              in: "query"
+              description: "dataset name"
+              required: false
+              type: "string"
+            - name: "id"
+              in: "query"
+              description: "dataset id"
+              required: false
+              type: "string"
+            responses:
+              200:
+                description: "successful operation"
+                schema:
+                  type: "array"
+                  items:
+                   $ref: "#/definitions/Dataset"
+              400:
+                description: "Invalid ID supplied"
+              404:
+                description: "Experiment not found"
+              default:
+                description: "unexpected error"
+                schema:
+                  $ref: "#/definitions/Response"
+            x-swagger-router-controller: "xpserver.controllers.xpctl_controller"
+
+  /dataset/delete/:
+    get:
+      tags:
+      - "xpctl"
+      summary: "delete a dataset from the database"
+      description: ""
+      operationId: "remove_dataset"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "name"
+        in: "query"
+        type: "string"
+        required: false
+      - name: "id"
+        in: "query"
+        type: "string"
+        required: false
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Response"
+        default:
+          description: "unexpected error"
+          schema:
+            $ref: "#/definitions/Response"
+      x-swagger-router-controller: "xpserver.controllers.xpctl_controller"
+
+  /dataset:
+    post:
+      tags:
+      - "xpctl"
+      summary: "Add a new dataset in database"
+      description: ""
+      operationId: "put_dataset"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "dataset"
+        in: "body"
+        schema:
+          $ref: "#/definitions/Dataset"
+        required: True
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Response"
+        default:
+          description: "unexpected error"
+          schema:
+            $ref: "#/definitions/Response"
+      x-swagger-router-controller: "xpserver.controllers.xpctl_controller"
+
 securityDefinitions:
   xpctl_auth:
     type: "oauth2"
@@ -470,7 +566,7 @@ definitions:
         example: 1
       phase:
         type: "string"
-        
+
   AggregateResult:
     type: "object"
     required:
@@ -482,7 +578,7 @@ definitions:
         example: "f1"
       values:
         type: "array"
-        items: 
+        items:
           type: "object"
           properties:
             aggregate_fn:
@@ -490,7 +586,7 @@ definitions:
             score:
              type: "number"
              format: "float32"
-          
+
   Experiment:
     type: "object"
     properties:
@@ -520,7 +616,7 @@ definitions:
         example: "2019-05-02T23:29:46.578675"
       label:
         type: "string"
-        example: "label"  
+        example: "label"
       version:
         type: "string"
         example: "1.4.1"
@@ -536,7 +632,7 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/Result"
-  
+
   ExperimentAggregate:
     type: "object"
     properties:
@@ -567,7 +663,7 @@ definitions:
         format: "date"
       label:
         type: "string"
-        example: "label"  
+        example: "label"
       version:
         type: "string"
         example: "1.4.1"
@@ -615,6 +711,41 @@ definitions:
         type: "string"
         enum: ["success", "error"]
 
+  Dataset:
+    type: "object"
+    required:
+      - "name"
+      - "train_files"
+      - "valid_files"
+      - "test_files"
+    properties:
+      id:
+        type: "string"
+      name:
+        type: "string"
+      train_files:
+        type: "array"
+        items:
+          $ref: "#/definitions/Datafile"
+      valid_files:
+        type: "array"
+        items:
+          $ref: "#/definitions/Datafile"
+      test_files:
+        type: "array"
+        items:
+          $ref: "#/definitions/Datafile"
+
+  Datafile:
+    type: "object"
+    required:
+      - "location"
+      - "sha1"
+    properties:
+      location:
+        type: "string"
+      sha1:
+        type: "string"
 
 externalDocs:
   description: "Find out more about Swagger"

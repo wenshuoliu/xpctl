@@ -5,11 +5,12 @@ from __future__ import absolute_import
 from flask import json
 from six import BytesIO
 
-from xpctl.xpserver.models.experiment import Experiment  # noqa: E501
-from xpctl.xpserver.models.experiment_aggregate import ExperimentAggregate  # noqa: E501
-from xpctl.xpserver.models.response import Response  # noqa: E501
-from xpctl.xpserver.models.task_summary import TaskSummary  # noqa: E501
-from xpctl.xpserver.test import BaseTestCase
+from xpserver.models.dataset import Dataset  # noqa: E501
+from xpserver.models.experiment import Experiment  # noqa: E501
+from xpserver.models.experiment_aggregate import ExperimentAggregate  # noqa: E501
+from xpserver.models.response import Response  # noqa: E501
+from xpserver.models.task_summary import TaskSummary  # noqa: E501
+from xpserver.test import BaseTestCase
 
 
 class TestXpctlController(BaseTestCase):
@@ -35,6 +36,20 @@ class TestXpctlController(BaseTestCase):
                         ('metric', 'metric_example')]
         response = self.client.open(
             '/v2/{task}/{eid}'.format(task='task_example', eid='eid_example'),
+            method='GET',
+            query_string=query_string)
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
+    def test_get_datasets(self):
+        """Test case for get_datasets
+
+        get datasets
+        """
+        query_string = [('name', 'name_example'),
+                        ('id', 'id_example')]
+        response = self.client.open(
+            '/v2/datasets/',
             method='GET',
             query_string=query_string)
         self.assert200(response,
@@ -88,6 +103,20 @@ class TestXpctlController(BaseTestCase):
         self.assert200(response,
                        'Response body is : ' + response.data.decode('utf-8'))
 
+    def test_put_dataset(self):
+        """Test case for put_dataset
+
+        Add a new dataset in database
+        """
+        dataset = Dataset()
+        response = self.client.open(
+            '/v2/dataset',
+            method='POST',
+            data=json.dumps(dataset),
+            content_type='application/json')
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
     def test_put_result(self):
         """Test case for put_result
 
@@ -100,6 +129,21 @@ class TestXpctlController(BaseTestCase):
             '/v2/put/{task}'.format(task='task_example'),
             method='POST',
             data=json.dumps(experiment),
+            content_type='application/json',
+            query_string=query_string)
+        self.assert200(response,
+                       'Response body is : ' + response.data.decode('utf-8'))
+
+    def test_remove_dataset(self):
+        """Test case for remove_dataset
+
+        delete a dataset from the database
+        """
+        query_string = [('name', 'name_example'),
+                        ('id', 'id_example')]
+        response = self.client.open(
+            '/v2/dataset/delete/',
+            method='GET',
             content_type='application/json',
             query_string=query_string)
         self.assert200(response,

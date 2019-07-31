@@ -24,6 +24,8 @@ from xpctl.xpclient.configuration import Configuration
 # import models into sdk package
 from xpctl.xpclient.models.aggregate_result import AggregateResult
 from xpctl.xpclient.models.aggregate_result_values import AggregateResultValues
+from xpctl.xpclient.models.datafile import Datafile
+from xpctl.xpclient.models.dataset import Dataset
 from xpctl.xpclient.models.experiment import Experiment
 from xpctl.xpclient.models.experiment_aggregate import ExperimentAggregate
 from xpctl.xpclient.models.response import Response

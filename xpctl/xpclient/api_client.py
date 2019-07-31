@@ -107,7 +107,6 @@ class ApiClient(object):
             _preload_content=True, _request_timeout=None):
 
         config = self.configuration
-
         # header parameters
         header_params = header_params or {}
         header_params.update(self.default_headers)
