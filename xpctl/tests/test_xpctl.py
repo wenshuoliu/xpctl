@@ -66,12 +66,8 @@ def _put_one_exp(exp):
 
 
 def _put_one_dataset(dataset):
-    result = API.put_dataset(dataset)
-    if result.response_type == 'error':
-        raise RuntimeError(result.message)
-    else:
-        return result.message
-
+    return API.put_dataset(dataset)
+    
 
 @clean_datasets
 def test_get_dataset(setup):
@@ -90,7 +86,11 @@ def test_get_dataset(setup):
     assert (dataset.train_files == [Datafile(location='loc_train', sha1='sha1_train')])
     assert (dataset.valid_files == [Datafile(location='loc_valid', sha1='sha1_valid')])
     assert (dataset.test_files == [Datafile(location='loc_test', sha1='sha1_test')])
-    
+    # try to put a dataset with the same name, should throw an error:
+    response = _put_one_dataset(dataset)
+    assert(response.response_type == 'error')
+    assert(response.message == 'dataset name already exists')
+
 
 @clean_experiments
 def test_put_result_blank(setup):

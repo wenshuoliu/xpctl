@@ -190,8 +190,11 @@ class MongoRepo(ExperimentRepo):
         }
         try:
             coll = self.db['datasets']
+            coll.create_index([('name', pymongo.ASCENDING)], unique=True)
             result = coll.insert_one(post)
             return BackendSuccess(message='{}/{}'.format(dataset.name, str(result.inserted_id)))
+        except pymongo.errors.DuplicateKeyError:
+            return BackendError(message='dataset name already exists')
         except pymongo.errors.PyMongoError as e:
             return BackendError(message='dataset could not be inserted: {}'.format(e.message))
 
