@@ -9,8 +9,9 @@ from xpctl.xpclient import Configuration
 from xpctl.xpclient.api import XpctlApi
 from xpctl.xpclient import ApiClient
 from xpctl.xpclient.rest import ApiException
+from xpctl.xpclient.models import Dataset
 from xpctl.clihelpers import experiment_to_df, experiment_aggregate_list_to_df, experiment_list_to_df, \
-    task_summary_to_df, task_summaries_to_df, read_config_stream
+    task_summary_to_df, task_summaries_to_df, read_config_stream, create_xpctl_dataset, LocalWriter, RemoteWriter
 from xpctl.utils import to_swagger_experiment, store_model, write_config_file
 from mead.utils import hash_config, get_dataset_from_key, index_by_label
 from baseline.utils import read_config_file
@@ -307,6 +308,51 @@ def putmodel(task, eid, cbase, cstore):
 
     except ApiException as e:
         click.echo(click.style(json.loads(e.body)['detail'], fg='red'))
+
+
+@cli.command()
+@click.argument('name')
+def dataset(name):
+    """Get the details for an experiment"""
+    ServerManager.get()
+    try:
+        result = ServerManager.api.get_datasets(name=name)
+        click.echo(result)
+    except ApiException as e:
+        click.echo(click.style(json.loads(e.body)['detail'], fg='red'))
+
+
+@cli.command()
+@click.option('--data_cache', help='location for downloading temporary files', default=os.path.expanduser('~/.bl-data'))
+@click.option('--writer_config', help='configs required to write dataset files',
+              default=os.path.expanduser('~/xpctlcred.json'))
+@click.option('--force', help='try to write dataset files even when the key exists in database', default=True)
+@click.argument('dataset_index')
+def putdata(dataset_index, data_cache, writer_config, force):
+    """Get the details for a dataset"""
+    ServerManager.get()
+    if not os.path.exists(dataset_index):
+        click.echo(click.style("index file at {} doesn't exist".format(dataset_index), fg='red'))
+        return
+    # create a writer
+    writer_info = read_config_file(writer_config)['writer']
+    writer_type = eval(writer_info['type'])
+    writer = writer_type(**writer_info['config'])
+    for dataset_desc in read_config_file(dataset_index):
+        result = create_xpctl_dataset(dataset_desc, data_cache, ServerManager.api, force, writer)
+        if not type(result) == Dataset:
+            click.echo(click.style(result, fg='red'))
+        else:
+            try:
+                result = ServerManager.api.put_dataset(result)
+                if result.response_type == 'success':
+                    dataset_id, dataset_name = result.message.split('/')
+                    click.echo(click.style('dataset {} stored with id: {}'.format(dataset_id, dataset_name),
+                                           fg='green'))
+                else:
+                    click.echo(click.style(result.message, fg='red'))
+            except ApiException as e:
+                click.echo(click.style(json.loads(e.body)['detail'], fg='red'))
 
 
 if __name__ == "__main__":
